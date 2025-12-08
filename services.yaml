@@ -1,0 +1,89 @@
+create_task:
+  name: Create Task
+  description: Create a new task in Microsoft Planner
+  fields:
+    title:
+      name: Title
+      description: The title/subject of the task
+      required: true
+      example: "Complete project documentation"
+      selector:
+        text:
+
+update_task:
+  name: Update Task
+  description: Update an existing Microsoft Planner task (title, due date, assignees, completion)
+  fields:
+    task_id:
+      name: Task ID
+      description: The Microsoft Planner task ID to update
+      required: true
+      example: "AAMkADk3..."
+      selector:
+        text:
+    title:
+      name: Title
+      description: New title for the task
+      required: false
+      selector:
+        text:
+    due_date:
+      name: Due Date
+      description: New due date in ISO 8601 format (e.g., 2025-10-20T10:00:00Z)
+      required: false
+      selector:
+        datetime:
+    assignees:
+      name: Assignees
+      description: Exact list of display names to assign to the task (replaces current assignees)
+      required: false
+      selector:
+        object:
+    percent_complete:
+      name: Percent Complete
+      description: Set the completion percentage (0-100)
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 5
+          mode: slider
+    completed:
+      name: Completed
+      description: Convenience flag to mark the task complete (true) or reset to not complete (false)
+      required: false
+      selector:
+        boolean:
+    due_date:
+      name: Due Date
+      description: When the task is due (ISO 8601 format, e.g., 2025-10-20T10:00:00Z)
+      required: false
+      example: "2025-10-20T10:00:00Z"
+      selector:
+        datetime:
+    assignees:
+      name: Assignees
+      description: List of people to assign the task to (use their display names from Azure AD)
+      required: false
+      example: ["Wolfgang", "Maria"]
+      selector:
+        object:
+    priority:
+      name: Priority
+      description: Task priority (1=Urgent, 3=Important, 5=Medium, 9=Low)
+      required: false
+      default: 5
+      example: 5
+      selector:
+        number:
+          min: 1
+          max: 10
+          mode: box
+    plan_name:
+      name: Plan Name
+      description: Name of the plan (optional, uses configured plan if not specified)
+      required: false
+      example: "Aufgaben"
+      selector:
+        text:

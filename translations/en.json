@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Microsoft Planner Configuration",
+        "description": "Enter your Microsoft Azure app credentials and the Planner plan name you want to monitor.",
+        "data": {
+          "client_id": "Client ID",
+          "client_secret": "Client Secret",
+          "tenant_id": "Tenant ID",
+          "plan_name": "Plan Name"
+        },
+        "data_description": {
+          "client_id": "The Application (client) ID from your Azure App Registration",
+          "client_secret": "The client secret value from your Azure App Registration",
+          "tenant_id": "Your Azure AD Tenant ID (also called Directory ID)",
+          "plan_name": "The exact name of the Planner plan you want to monitor"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Microsoft Graph API or plan not found. Please check your credentials and plan name.",
+      "invalid_auth": "Authentication failed. Please check your Client ID, Client Secret, and Tenant ID.",
+      "unknown": "Unexpected error occurred. Please check the logs for more details."
+    },
+    "abort": {
+      "already_configured": "This plan is already configured for this tenant."
+    }
+  }
+}
