@@ -1,6 +1,7 @@
 # Microsoft Planner Integration for Home Assistant
 
 This custom integration allows you to retrieve and monitor tasks from Microsoft Planner plans in Home Assistant.
+This code was generatde by GPT5.1-Codex.
 
 ## Features
 
