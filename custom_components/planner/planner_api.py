@@ -408,6 +408,50 @@ class PlannerAPI:
                 "error": str(err)
             }
 
+    def delete_task(self, task_id: str) -> dict[str, Any]:
+        """Delete a task from Planner."""
+
+        task_url = f"{GRAPH_API_ENDPOINT}/planner/tasks/{task_id}"
+
+        try:
+            get_response = requests.get(task_url, headers=self._get_headers(), timeout=30)
+
+            if get_response.status_code == 401:
+                self.access_token = None
+                self.authenticate()
+                get_response = requests.get(task_url, headers=self._get_headers(), timeout=30)
+
+            get_response.raise_for_status()
+            etag = get_response.headers.get("ETag") or get_response.json().get("@odata.etag")
+
+            if not etag:
+                return {"success": False, "error": "Task ETag missing; cannot delete"}
+
+            headers = self._get_headers()
+            headers["If-Match"] = etag
+
+            delete_response = requests.delete(task_url, headers=headers, timeout=30)
+
+            if delete_response.status_code == 401:
+                self.access_token = None
+                self.authenticate()
+                headers = self._get_headers()
+                headers["If-Match"] = etag
+                delete_response = requests.delete(task_url, headers=headers, timeout=30)
+
+            delete_response.raise_for_status()
+            _LOGGER.info("Deleted task %s", task_id)
+            return {"success": True}
+
+        except requests.exceptions.HTTPError as err:
+            _LOGGER.error("HTTP error deleting task %s: %s", task_id, err)
+            if err.response is not None:
+                _LOGGER.error("Response body: %s", err.response.text)
+            return {"success": False, "error": f"HTTP error: {err}"}
+        except Exception as err:
+            _LOGGER.error("Error deleting task %s: %s", task_id, err, exc_info=True)
+            return {"success": False, "error": str(err)}
+
     def update_task(
         self,
         task_id: str,

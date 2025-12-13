@@ -8,6 +8,7 @@ This code was generatde by GPT5.1-Codex.
 - ✅ Retrieve open tasks from a Microsoft Planner plan
 - ✅ Create new tasks with title, due date, and assignees
 - ✅ Update task details (title, due date, assignees, completion)
+- ✅ Expose open tasks as a Home Assistant todo list (works with the Todo card)
 - ✅ Display total number of open tasks
 - ✅ Show task details including title, priority, due date, assignees, and completion percentage
 - ✅ Filter and count high-priority tasks
@@ -71,6 +72,23 @@ After configuration, a sensor entity will be created:
   - `high_priority_tasks`: Count of high-priority tasks (priority 1-3)
   - `tasks`: List of all open tasks with details
   - `last_updated`: Timestamp of last update
+
+### Todo List Entity
+
+The integration now also registers a todo entity that mirrors the open tasks in Home Assistant's native todo system:
+- **Entity ID**: `todo.planner_<plan_name>_tasks`
+- **Features**: Create, update/complete, and delete tasks directly from the UI or Assist
+- **Card support**: Works out of the box with the Todo List card so you can drag-and-drop, add, or finish items from a dashboard
+
+Each todo item exposes the Planner title, due date, priority, and assignee list (as the description). Actions taken from Home Assistant immediately call the Microsoft Graph API and refresh the coordinator so the sensor and todo entity stay in sync.
+
+#### Example Todo Card
+
+```yaml
+type: todo-list
+entity: todo.planner_my_plan_tasks
+title: Planner
+```
 
 ### Example Task Attributes
 
@@ -220,10 +238,8 @@ If you see 403 Forbidden errors:
 ## Future Enhancements
 
 Planned features for future versions:
-- Create new tasks via services
-- Update existing tasks (mark as complete, change priority)
-- Support for task buckets
-- Task assignment information
+- Support for task buckets and bucket-specific sensors/todo lists
+- Surface completed task history alongside open items
 - Task comments and attachments
 
 ## License

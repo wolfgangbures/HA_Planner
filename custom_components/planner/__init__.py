@@ -15,7 +15,7 @@ from .planner_api import PlannerAPI
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.TODO]
 
 UPDATE_INTERVAL = timedelta(minutes=5)
 
