@@ -7,7 +7,6 @@ from typing import Any
 
 from homeassistant.components.todo import (
     TodoItem,
-    TodoItemPriority,
     TodoItemStatus,
     TodoListEntity,
     TodoListEntityFeature,
@@ -86,7 +85,6 @@ class PlannerTodoList(CoordinatorEntity, TodoListEntity):
                     status=self._status_from_task(task),
                     due=self._parse_due_date(task.get("dueDateTime")),
                     description=self._build_description(task),
-                    priority=self._priority_from_planner(task.get("priority")),
                 )
             )
 
@@ -96,7 +94,7 @@ class PlannerTodoList(CoordinatorEntity, TodoListEntity):
         """Create a Planner task from a todo item."""
         title = item.summary or "New Task"
         due_date = self._format_due_date(item.due)
-        priority = self._priority_to_planner(item.priority)
+        priority = 5
 
         result = await self.hass.async_add_executor_job(
             self._api.create_task,
@@ -118,7 +116,6 @@ class PlannerTodoList(CoordinatorEntity, TodoListEntity):
             uid=result.get("task_id"),
             status=TodoItemStatus.NEEDS_ACTION,
             due=item.due,
-            priority=item.priority,
         )
 
     async def async_update_todo_item(self, item: TodoItem) -> TodoItem | None:
@@ -186,24 +183,6 @@ class PlannerTodoList(CoordinatorEntity, TodoListEntity):
         value = value.astimezone(timezone.utc)
         iso_value = value.isoformat().replace("+00:00", "Z")
         return iso_value
-
-    @staticmethod
-    def _priority_from_planner(value: int | None) -> TodoItemPriority:
-        if value is None:
-            return TodoItemPriority.NORMAL
-        if value <= 3:
-            return TodoItemPriority.HIGH
-        if value <= 6:
-            return TodoItemPriority.NORMAL
-        return TodoItemPriority.LOW
-
-    @staticmethod
-    def _priority_to_planner(priority: TodoItemPriority | None) -> int:
-        if priority == TodoItemPriority.HIGH:
-            return 1
-        if priority == TodoItemPriority.LOW:
-            return 9
-        return 5
 
     @staticmethod
     def _status_from_task(task: dict[str, Any]) -> TodoItemStatus:

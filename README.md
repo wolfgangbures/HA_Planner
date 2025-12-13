@@ -80,7 +80,7 @@ The integration now also registers a todo entity that mirrors the open tasks in 
 - **Features**: Create, update/complete, and delete tasks directly from the UI or Assist
 - **Card support**: Works out of the box with the Todo List card so you can drag-and-drop, add, or finish items from a dashboard
 
-Each todo item exposes the Planner title, due date, priority, and assignee list (as the description). Actions taken from Home Assistant immediately call the Microsoft Graph API and refresh the coordinator so the sensor and todo entity stay in sync.
+Each todo item exposes the Planner title, due date, and assignee list (as the description). Actions taken from Home Assistant immediately call the Microsoft Graph API and refresh the coordinator so the sensor and todo entity stay in sync.
 
 #### Example Todo Card
 
