@@ -49,7 +49,6 @@ class PlannerTodoList(CoordinatorEntity, TodoListEntity):
         TodoListEntityFeature.CREATE_TODO_ITEM
         | TodoListEntityFeature.UPDATE_TODO_ITEM
         | TodoListEntityFeature.DELETE_TODO_ITEM
-        | TodoListEntityFeature.SET_DUE_DATE
     )
 
     def __init__(self, coordinator, api, entry: ConfigEntry, plan_name: str) -> None:
