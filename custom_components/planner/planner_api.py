@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import quote
 
 import msal
 import requests
@@ -116,20 +117,51 @@ class PlannerAPI:
             _LOGGER.warning("Could not resolve user ID %s: %s", user_id, err)
             return user_id
 
+    @staticmethod
+    def _escape_odata_string(value: str) -> str:
+        """Escape quotes for OData filters."""
+        return value.replace("'", "''")
+
     def get_user_id_by_name(self, display_name: str) -> str | None:
-        """Get user ID by display name."""
+        """Resolve a user ID from UPN, mail nickname, or display name."""
+        identifier = (display_name or "").strip()
+        if not identifier:
+            _LOGGER.warning("Empty user identifier provided for lookup")
+            return None
+
+        # Try direct lookup first – Graph accepts object ID or UPN on /users/{id}
         try:
-            # Search for user by display name
-            users_response = self._make_request(f"users?$filter=displayName eq '{display_name}'")
-            users = users_response.get("value", [])
-            if users:
-                return users[0].get("id")
-            
-            _LOGGER.warning("User '%s' not found", display_name)
-            return None
+            user_response = self._make_request(f"users/{quote(identifier)}")
+            if user_response:
+                return user_response.get("id")
+        except requests.exceptions.HTTPError as err:
+            if err.response is not None and err.response.status_code == 404:
+                _LOGGER.debug("Direct lookup for '%s' returned 404", identifier)
+            else:
+                _LOGGER.debug("Direct lookup for '%s' failed: %s", identifier, err)
         except Exception as err:
-            _LOGGER.error("Error looking up user '%s': %s", display_name, err)
-            return None
+            _LOGGER.debug("Direct lookup for '%s' errored: %s", identifier, err)
+
+        escaped_value = self._escape_odata_string(identifier)
+        filter_expressions = [
+            f"userPrincipalName eq '{escaped_value}'",
+            f"mail eq '{escaped_value}'",
+            f"mailNickname eq '{escaped_value}'",
+            f"displayName eq '{escaped_value}'",
+            f"startswith(mailNickname,'{escaped_value}')",
+        ]
+
+        for filter_query in filter_expressions:
+            try:
+                users_response = self._make_request(f"users?$filter={filter_query}")
+                users = users_response.get("value", [])
+                if users:
+                    return users[0].get("id")
+            except Exception as err:
+                _LOGGER.debug("Filter lookup '%s' failed: %s", filter_query, err)
+
+        _LOGGER.warning("User '%s' not found", identifier)
+        return None
 
     def get_task_assignments(self, task_id: str) -> list[str]:
         """Get the list of assignees for a task."""
