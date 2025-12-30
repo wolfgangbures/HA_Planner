@@ -9,6 +9,50 @@ create_task:
       example: "Complete project documentation"
       selector:
         text:
+    due_date:
+      name: Due Date
+      description: When the task is due (ISO 8601 format, e.g., 2025-10-20T10:00:00Z)
+      required: false
+      selector:
+        datetime:
+    assignees:
+      name: Assignees
+      description: List of people to assign the task to (use their display names from Azure AD)
+      required: false
+      example: ["Wolfgang", "Maria"]
+      selector:
+        object:
+    priority:
+      name: Priority
+      description: Task priority (1=Urgent, 3=Important, 5=Medium, 9=Low)
+      required: false
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 10
+          mode: box
+    bucket_id:
+      name: Bucket ID
+      description: Optional Microsoft Planner bucket ID for the new task
+      required: false
+      example: "tXeXcq0d5UqXYZq1OIxBY5gABO"
+      selector:
+        text:
+    bucket:
+      name: Bucket Name
+      description: Bucket name (or ID) to resolve automatically
+      required: false
+      example: "In Progress"
+      selector:
+        text:
+    plan_name:
+      name: Plan Name
+      description: Plan to create the task in (defaults to the configured plan)
+      required: false
+      example: "Aufgaben"
+      selector:
+        text:
 
 update_task:
   name: Update Task
@@ -55,34 +99,35 @@ update_task:
       required: false
       selector:
         boolean:
-    due_date:
-      name: Due Date
-      description: When the task is due (ISO 8601 format, e.g., 2025-10-20T10:00:00Z)
+    bucket_id:
+      name: Bucket ID
+      description: Move the task into this Microsoft Planner bucket ID
       required: false
-      example: "2025-10-20T10:00:00Z"
+      example: "tXeXcq0d5UqXYZq1OIxBY5gABO"
       selector:
-        datetime:
-    assignees:
-      name: Assignees
-      description: List of people to assign the task to (use their display names from Azure AD)
+        text:
+    bucket:
+      name: Bucket Name
+      description: Bucket name (or ID) to resolve automatically
       required: false
-      example: ["Wolfgang", "Maria"]
+      example: "Ready for Review"
       selector:
-        object:
-    priority:
-      name: Priority
-      description: Task priority (1=Urgent, 3=Important, 5=Medium, 9=Low)
-      required: false
-      default: 5
-      example: 5
-      selector:
-        number:
-          min: 1
-          max: 10
-          mode: box
+        text:
     plan_name:
       name: Plan Name
-      description: Name of the plan (optional, uses configured plan if not specified)
+      description: Plan the task belongs to (defaults to the configured plan)
+      required: false
+      example: "Aufgaben"
+      selector:
+        text:
+
+list_buckets:
+  name: List Buckets
+  description: Return the available Planner buckets for a plan
+  fields:
+    plan_name:
+      name: Plan Name
+      description: Plan to inspect (defaults to the configured plan)
       required: false
       example: "Aufgaben"
       selector:

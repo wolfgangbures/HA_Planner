@@ -330,6 +330,99 @@ class PlannerAPI:
                 "error": str(err),
             }
 
+    def get_plan_buckets(self, plan_name: str) -> dict[str, Any]:
+        """Return all buckets for the given plan."""
+        plan = self.get_plan_by_name(plan_name)
+
+        if not plan:
+            _LOGGER.error("Cannot list buckets: Plan '%s' not found", plan_name)
+            return {
+                "success": False,
+                "plan_name": plan_name,
+                "plan_id": None,
+                "buckets": [],
+                "error": f"Plan '{plan_name}' not found",
+            }
+
+        plan_id = plan.get("id")
+
+        try:
+            buckets_response = self._make_request(f"planner/plans/{plan_id}/buckets")
+            buckets = [
+                {
+                    "id": bucket.get("id"),
+                    "name": bucket.get("name"),
+                    "planId": bucket.get("planId"),
+                    "orderHint": bucket.get("orderHint"),
+                }
+                for bucket in buckets_response.get("value", [])
+            ]
+
+            return {
+                "success": True,
+                "plan_name": plan_name,
+                "plan_id": plan_id,
+                "buckets": buckets,
+            }
+
+        except Exception as err:
+            _LOGGER.error("Error fetching buckets for plan %s: %s", plan_name, err)
+            return {
+                "success": False,
+                "plan_name": plan_name,
+                "plan_id": plan_id,
+                "buckets": [],
+                "error": str(err),
+            }
+
+    def resolve_bucket_id(self, plan_name: str, bucket_value: str | None) -> dict[str, Any]:
+        """Resolve a bucket name or ID to an ID for the given plan."""
+        cleaned_value = (bucket_value or "").strip()
+        if not cleaned_value:
+            return {
+                "success": False,
+                "plan_name": plan_name,
+                "error": "Bucket value is empty",
+            }
+
+        buckets_result = self.get_plan_buckets(plan_name)
+        if not buckets_result.get("success"):
+            return buckets_result
+
+        target_lower = cleaned_value.lower()
+        for bucket in buckets_result.get("buckets", []):
+            bucket_id = (bucket.get("id") or "").strip()
+            bucket_name = (bucket.get("name") or "").strip()
+
+            if bucket_id and bucket_id.lower() == target_lower:
+                return {
+                    "success": True,
+                    "plan_name": plan_name,
+                    "plan_id": buckets_result.get("plan_id"),
+                    "bucket_id": bucket_id,
+                    "bucket_name": bucket_name,
+                }
+
+            if bucket_name and bucket_name.lower() == target_lower:
+                return {
+                    "success": True,
+                    "plan_name": plan_name,
+                    "plan_id": buckets_result.get("plan_id"),
+                    "bucket_id": bucket_id,
+                    "bucket_name": bucket_name,
+                }
+
+        return {
+            "success": False,
+            "plan_name": plan_name,
+            "plan_id": buckets_result.get("plan_id"),
+            "error": f"Bucket '{cleaned_value}' not found",
+            "available_buckets": [
+                {"id": b.get("id"), "name": b.get("name")}
+                for b in buckets_result.get("buckets", [])
+            ],
+        }
+
     def create_task(
         self,
         plan_name: str,
@@ -337,6 +430,7 @@ class PlannerAPI:
         due_date: str | None = None,
         assignees: list[str] | None = None,
         priority: int = 5,
+        bucket_id: str | None = None,
     ) -> dict[str, Any]:
         """Create a new task in the plan.
         
@@ -346,6 +440,7 @@ class PlannerAPI:
             due_date: Due date in ISO format (e.g., "2025-10-20T10:00:00Z")
             assignees: List of display names to assign the task to
             priority: Task priority (1=urgent, 5=normal, 9=low)
+            bucket_id: Target Planner bucket ID (defaults to plan default bucket)
         
         Returns:
             Dictionary with task creation result
@@ -369,6 +464,9 @@ class PlannerAPI:
             # Add due date if provided
             if due_date:
                 task_data["dueDateTime"] = due_date
+
+            if bucket_id:
+                task_data["bucketId"] = bucket_id
             
             # Build assignments dictionary
             assignments = {}
@@ -492,6 +590,7 @@ class PlannerAPI:
         assignees: list[str] | None = None,
         percent_complete: int | None = None,
         completed: bool | None = None,
+        bucket_id: str | None = None,
     ) -> dict[str, Any]:
         """Update properties on an existing task.
 
@@ -502,11 +601,19 @@ class PlannerAPI:
             assignees: Optional list of assignee display names (set exact list)
             percent_complete: Optional numeric completion percentage (0-100)
             completed: Optional boolean to quickly mark complete/incomplete
+            bucket_id: Optional Planner bucket ID to move the task into
         """
 
         if not any(
             value is not None
-            for value in (title, due_date, assignees, percent_complete, completed)
+            for value in (
+                title,
+                due_date,
+                assignees,
+                percent_complete,
+                completed,
+                bucket_id,
+            )
         ):
             return {"success": False, "error": "No update fields were provided"}
 
@@ -571,6 +678,9 @@ class PlannerAPI:
                         new_assignments[existing_id] = None
 
                 update_payload["assignments"] = new_assignments
+
+            if bucket_id is not None:
+                update_payload["bucketId"] = bucket_id
 
             if not update_payload:
                 return {"success": False, "error": "No valid fields to update"}

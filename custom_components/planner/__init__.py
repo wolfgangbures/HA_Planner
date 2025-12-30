@@ -73,9 +73,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         due_date = call.data.get("due_date")
         assignees = call.data.get("assignees", [])
         priority = call.data.get("priority", 5)
+        bucket_id = call.data.get("bucket_id")
+        bucket_value = call.data.get("bucket")
         
         # Use the first configured plan if not specified
         target_plan = call.data.get("plan_name", plan_name)
+
+        resolved_bucket_id = bucket_id
+        if not resolved_bucket_id and bucket_value:
+            lookup = await hass.async_add_executor_job(
+                api.resolve_bucket_id,
+                target_plan,
+                bucket_value,
+            )
+
+            if not lookup.get("success"):
+                _LOGGER.error(
+                    "Failed to resolve bucket '%s' for plan '%s': %s",
+                    bucket_value,
+                    target_plan,
+                    lookup.get("error"),
+                )
+                return lookup
+
+            resolved_bucket_id = lookup.get("bucket_id")
         
         _LOGGER.info("Service call to create task: %s", title)
         
@@ -85,7 +106,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             title,
             due_date,
             assignees,
-            priority
+            priority,
+            resolved_bucket_id,
         )
         
         if result.get("success"):
@@ -107,6 +129,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         assignees = call.data.get("assignees")
         percent_complete = call.data.get("percent_complete")
         completed = call.data.get("completed")
+        bucket_id = call.data.get("bucket_id")
+        bucket_value = call.data.get("bucket")
+        target_plan = call.data.get("plan_name", plan_name)
+
+        resolved_bucket_id = bucket_id
+        if not resolved_bucket_id and bucket_value:
+            lookup = await hass.async_add_executor_job(
+                api.resolve_bucket_id,
+                target_plan,
+                bucket_value,
+            )
+
+            if not lookup.get("success"):
+                _LOGGER.error(
+                    "Failed to resolve bucket '%s' for plan '%s': %s",
+                    bucket_value,
+                    target_plan,
+                    lookup.get("error"),
+                )
+                return lookup
+
+            resolved_bucket_id = lookup.get("bucket_id")
 
         if not task_id:
             _LOGGER.error("update_task service requires task_id")
@@ -122,6 +166,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             assignees,
             percent_complete,
             completed,
+            resolved_bucket_id,
         )
 
         if result.get("success"):
@@ -136,6 +181,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return result
 
     hass.services.async_register(DOMAIN, "update_task", handle_update_task)
+
+    async def handle_list_buckets(call):
+        """Handle listing buckets for a plan."""
+        target_plan = call.data.get("plan_name", plan_name)
+
+        result = await hass.async_add_executor_job(
+            api.get_plan_buckets,
+            target_plan,
+        )
+
+        if not result.get("success"):
+            _LOGGER.error(
+                "Failed to list buckets for plan '%s': %s",
+                target_plan,
+                result.get("error"),
+            )
+
+        return result
+
+    hass.services.async_register(DOMAIN, "list_buckets", handle_list_buckets)
 
     return True
 

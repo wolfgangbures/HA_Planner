@@ -12,6 +12,8 @@ This code was generatde by GPT5.1-Codex.
 - ✅ Display total number of open tasks
 - ✅ Show task details including title, priority, due date, assignees, and completion percentage
 - ✅ Filter and count high-priority tasks
+- ✅ Target specific Planner buckets when creating or moving tasks
+- ✅ Resolve bucket names automatically and list available buckets
 - ✅ Automatic updates every 5 minutes
 - ✅ Use in voice intents to get task overviews and create tasks
 
@@ -135,7 +137,11 @@ data:
     - Wolfgang
     - Maria
   priority: 5
+  bucket_id: "tXeXcq0d5UqXYZq1OIxBY5gABO"
+  bucket: "In Progress"
 ```
+
+`bucket_id` is optional and lets you drop the task straight into a specific Planner bucket. Prefer the `bucket` field when you only know the bucket name—the integration will look up the ID for you (and can list available buckets via the service below).
 
 ### Updating Tasks
 
@@ -151,9 +157,25 @@ data:
   assignees:
     - Wolfgang
   completed: true
+  bucket_id: "tXeXcq0d5UqXYZq1OIxBY5gABO"
+  bucket: "Ready for Review"
 ```
 
-You can supply any combination of `title`, `due_date`, `assignees`, `percent_complete`, or `completed`. Fields you leave out remain unchanged. Passing an empty list for `assignees` removes every assignment from the task.
+You can supply any combination of `title`, `due_date`, `assignees`, `percent_complete`, `completed`, or bucket inputs. Fields you leave out remain unchanged. Passing an empty list for `assignees` removes every assignment from the task.
+
+Providing either `bucket_id` or `bucket` moves the task to that Planner bucket while preserving all other fields.
+
+### Listing Buckets
+
+Call the `planner.list_buckets` service to see every bucket available for a plan (defaults to your configured plan):
+
+```yaml
+service: planner.list_buckets
+data:
+  plan_name: "Aufgaben"
+```
+
+Home Assistant displays the service response in the call dialog, making it easy to copy/paste bucket IDs or names into future automations.
 
 ### Completing Tasks via Voice
 
@@ -238,7 +260,6 @@ If you see 403 Forbidden errors:
 ## Future Enhancements
 
 Planned features for future versions:
-- Support for task buckets and bucket-specific sensors/todo lists
 - Surface completed task history alongside open items
 - Task comments and attachments
 
