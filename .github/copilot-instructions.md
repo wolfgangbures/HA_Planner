@@ -39,6 +39,6 @@
 ## GitHub
 - Always split branches by feature/fix for PRs; avoid working directly on `main`.
 - Write clear, descriptive commit messages; reference related issues/PRs when applicable.
-- Provide the links to the PR in chat for the users to test and review.
+- Always use PRs for changes; set me as the approver.
 - Tag releases in GitHub matching the version in `custom_components/planner/manifest.json`.
 - increment the version in `manifest.json` for every PR that changes functionality.
