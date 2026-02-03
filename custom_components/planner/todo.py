@@ -72,6 +72,14 @@ class PlannerTodoList(CoordinatorEntity, TodoListEntity):
 
     async def async_get_todo_items(self) -> list[TodoItem]:
         """Return the current Planner tasks as todo items."""
+        return self._build_items()
+
+    @property
+    def todo_items(self) -> list[TodoItem]:
+        """Return cached todo items for newer Home Assistant versions."""
+        return self._build_items()
+
+    def _build_items(self) -> list[TodoItem]:
         data = self.coordinator.data or {}
         tasks: list[dict[str, Any]] = data.get("open_tasks", [])
         items: list[TodoItem] = []
