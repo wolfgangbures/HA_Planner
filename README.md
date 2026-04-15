@@ -60,6 +60,27 @@ Before using this integration, you need to set up an Azure App Registration:
    - **Tenant ID**: Your Azure AD Tenant ID
    - **Plan Name**: The exact name of the Planner plan you want to monitor
 
+## Managing Credentials
+
+### Updating Expired Credentials
+
+If your client secret or other credentials expire, you can update them without deleting and re-adding the integration:
+
+1. Go to Settings → Devices & Services
+2. Find the "Microsoft Planner" integration
+3. Click the **Options** button (gear icon)
+4. Update your credentials:
+   - **Client ID**: Update if you created a new app registration
+   - **Client Secret**: Update with a new secret value (e.g., if the current one expired)
+   - **Tenant ID**: Update if your Azure tenant changed
+5. Click **Submit**
+6. The integration will validate the new credentials and reload automatically
+
+If credential validation fails, you'll see an error message explaining what went wrong. Common issues include:
+- Expired client secret (create a new one in Azure Portal)
+- Incorrect credentials
+- Missing API permissions in Azure
+
 ## Usage
 
 ### Sensor Entity

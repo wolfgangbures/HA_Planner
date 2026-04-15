@@ -26,5 +26,30 @@
     "abort": {
       "already_configured": "This plan is already configured for this tenant."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update Microsoft Planner Credentials",
+        "description": "Update your Microsoft Azure app credentials for plan '{plan_name}'.",
+        "data": {
+          "client_id": "Client ID",
+          "client_secret": "Client Secret",
+          "tenant_id": "Tenant ID"
+        },
+        "data_description": {
+          "client_id": "The Application (client) ID from your Azure App Registration",
+          "client_secret": "The client secret value from your Azure App Registration (update if expired)",
+          "tenant_id": "Your Azure AD Tenant ID (also called Directory ID)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Authentication failed. Please check your Client ID, Client Secret, and Tenant ID.",
+      "unknown": "Unexpected error occurred. Please check the logs for more details."
+    },
+    "abort": {
+      "credentials_updated": "Credentials have been successfully updated."
+    }
   }
 }

@@ -31,6 +31,14 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
+STEP_OPTIONS_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_CLIENT_ID): str,
+        vol.Required(CONF_CLIENT_SECRET): str,
+        vol.Required(CONF_TENANT_ID): str,
+    }
+)
+
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect.
@@ -77,10 +85,94 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {"title": f"Planner: {data[CONF_PLAN_NAME]}"}
 
 
+async def validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> None:
+    """Validate credentials without checking plan (for options update).
+    
+    Data has the keys: client_id, client_secret, tenant_id.
+    """
+    api = PlannerAPI(
+        data[CONF_CLIENT_ID],
+        data[CONF_CLIENT_SECRET],
+        data[CONF_TENANT_ID],
+    )
+
+    # Test authentication
+    try:
+        await hass.async_add_executor_job(api.authenticate)
+        _LOGGER.info("Credentials validation successful for tenant: %s", data[CONF_TENANT_ID])
+    except Exception as err:
+        _LOGGER.error("Credentials validation failed: %s", err)
+        raise InvalidAuth from err
+
+
+class OptionsFlow(config_entries.OptionsFlow):
+    """Handle options for Microsoft Planner."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options for the custom component."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                await validate_credentials(self.hass, user_input)
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception during credentials validation")
+                errors["base"] = "unknown"
+            else:
+                # Update the config entry data with new credentials
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    data={
+                        **self.config_entry.data,
+                        CONF_CLIENT_ID: user_input[CONF_CLIENT_ID],
+                        CONF_CLIENT_SECRET: user_input[CONF_CLIENT_SECRET],
+                        CONF_TENANT_ID: user_input[CONF_TENANT_ID],
+                    },
+                )
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                return self.async_abort(reason="credentials_updated")
+
+        # Pre-fill current values
+        current_data = self.config_entry.data
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_CLIENT_ID, default=current_data.get(CONF_CLIENT_ID, "")
+                ): str,
+                vol.Required(
+                    CONF_CLIENT_SECRET, default=current_data.get(CONF_CLIENT_SECRET, "")
+                ): str,
+                vol.Required(
+                    CONF_TENANT_ID, default=current_data.get(CONF_TENANT_ID, "")
+                ): str,
+            }
+        )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "plan_name": current_data.get(CONF_PLAN_NAME, ""),
+            },
+        )
+
+
+def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> OptionsFlow:
+    """Return options flow."""
+    return OptionsFlow(config_entry)
+
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Microsoft Planner."""
 
     VERSION = 1
+    
+    async_get_options_flow = staticmethod(async_get_options_flow)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
