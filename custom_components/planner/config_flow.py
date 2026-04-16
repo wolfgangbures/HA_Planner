@@ -108,6 +108,10 @@ async def validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> Non
 class OptionsFlow(config_entries.OptionsFlow):
     """Handle options for Microsoft Planner."""
 
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow with the current config entry."""
+        self.config_entry = config_entry
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
