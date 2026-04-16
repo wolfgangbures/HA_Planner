@@ -7,7 +7,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
@@ -108,10 +108,6 @@ async def validate_credentials(hass: HomeAssistant, data: dict[str, Any]) -> Non
 class OptionsFlow(config_entries.OptionsFlow):
     """Handle options for Microsoft Planner."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow with the current config entry."""
-        self.config_entry = config_entry
-
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -138,27 +134,21 @@ class OptionsFlow(config_entries.OptionsFlow):
                     },
                 )
                 await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                return self.async_abort(reason="credentials_updated")
+                return self.async_create_entry(title="", data={})
 
         # Pre-fill current values
         current_data = self.config_entry.data
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_CLIENT_ID, default=current_data.get(CONF_CLIENT_ID, "")
-                ): str,
-                vol.Required(
-                    CONF_CLIENT_SECRET, default=current_data.get(CONF_CLIENT_SECRET, "")
-                ): str,
-                vol.Required(
-                    CONF_TENANT_ID, default=current_data.get(CONF_TENANT_ID, "")
-                ): str,
-            }
-        )
 
         return self.async_show_form(
             step_id="init",
-            data_schema=schema,
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_OPTIONS_DATA_SCHEMA,
+                {
+                    CONF_CLIENT_ID: current_data.get(CONF_CLIENT_ID, ""),
+                    CONF_CLIENT_SECRET: current_data.get(CONF_CLIENT_SECRET, ""),
+                    CONF_TENANT_ID: current_data.get(CONF_TENANT_ID, ""),
+                },
+            ),
             errors=errors,
             description_placeholders={
                 "plan_name": current_data.get(CONF_PLAN_NAME, ""),
@@ -166,9 +156,10 @@ class OptionsFlow(config_entries.OptionsFlow):
         )
 
 
+@callback
 def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> OptionsFlow:
     """Return options flow."""
-    return OptionsFlow(config_entry)
+    return OptionsFlow()
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

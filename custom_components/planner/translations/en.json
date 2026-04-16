@@ -48,8 +48,8 @@
       "invalid_auth": "Authentication failed. Please check your Client ID, Client Secret, and Tenant ID.",
       "unknown": "Unexpected error occurred. Please check the logs for more details."
     },
-    "abort": {
-      "credentials_updated": "Credentials have been successfully updated."
+    "create_entry": {
+      "default": "Credentials have been successfully updated."
     }
   }
 }
