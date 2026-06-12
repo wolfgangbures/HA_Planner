@@ -54,16 +54,35 @@ jobs:
               "   - Risks / follow-ups",
             ].join("\n");
 
-            await github.request("POST /agents/repos/{owner}/{repo}/tasks", {
-              owner,
-              repo,
-              headers: {
-                "X-GitHub-Api-Version": "2022-11-28",
-              },
-              prompt,
-              base_ref: "main",
-              create_pull_request: true,
-            });
+            const headers = {
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Accept": "application/vnd.github+json",
+            };
+
+            try {
+              await github.request("POST /agents/repos/{owner}/{repo}/tasks", {
+                owner,
+                repo,
+                headers,
+                prompt,
+                base_ref: "main",
+                create_pull_request: true,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              core.warning("Copilot agents endpoint not found, retrying with legacy endpoint.");
+              await github.request("POST /repos/{owner}/{repo}/copilot/tasks", {
+                owner,
+                repo,
+                headers,
+                problem_title: `Implement fix for #${issue.number}: ${issue.title}`,
+                problem_statement: prompt,
+                create_pull_request: true,
+              });
+            }
 
       - name: Comment on issue
         uses: actions/github-script@v9
