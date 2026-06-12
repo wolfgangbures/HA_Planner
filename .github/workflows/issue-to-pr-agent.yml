@@ -73,7 +73,7 @@ jobs:
                 throw error;
               }
 
-              core.warning("Copilot Agents endpoint not found, retrying with legacy /repos/{owner}/{repo}/copilot/tasks endpoint.");
+              core.warning("Copilot Agents endpoint not found, attempting legacy /repos/{owner}/{repo}/copilot/tasks endpoint.");
               await github.request("POST /repos/{owner}/{repo}/copilot/tasks", {
                 owner,
                 repo,
