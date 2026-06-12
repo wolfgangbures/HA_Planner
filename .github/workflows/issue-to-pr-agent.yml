@@ -18,14 +18,15 @@ jobs:
       - name: Run Copilot coding agent from issue
         uses: actions/github-script@v9
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.COPILOT_TOKEN }}
           script: |
             const issue = context.payload.issue;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            const problemTitle = `Implement fix for #${issue.number}: ${issue.title}`;
-            const problemStatement = [
+            const prompt = [
+              `Implement fix for #${issue.number}: ${issue.title}`,
+              "",
               "A new GitHub issue was opened and should be analyzed and implemented.",
               "",
               `Repository: ${owner}/${repo}`,
@@ -53,12 +54,15 @@ jobs:
               "   - Risks / follow-ups",
             ].join("\n");
 
-            await github.request("POST /repos/{owner}/{repo}/copilot/tasks", {
+            await github.request("POST /agents/repos/{owner}/{repo}/tasks", {
               owner,
               repo,
-              problem_title: problemTitle,
-              problem_statement: problemStatement,
-              create_pull_request: true
+              headers: {
+                "X-GitHub-Api-Version": "2022-11-28",
+              },
+              prompt,
+              base_ref: "main",
+              create_pull_request: true,
             });
 
       - name: Comment on issue
