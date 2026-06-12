@@ -73,7 +73,7 @@ jobs:
                 throw error;
               }
 
-              core.warning("Copilot agents endpoint not found, retrying with legacy endpoint.");
+              core.warning("Copilot Agents endpoint not found, retrying with legacy /repos/{owner}/{repo}/copilot/tasks endpoint.");
               await github.request("POST /repos/{owner}/{repo}/copilot/tasks", {
                 owner,
                 repo,
@@ -82,6 +82,7 @@ jobs:
                 problem_statement: prompt,
                 create_pull_request: true,
               });
+              core.info("Copilot coding task created through legacy endpoint fallback.");
             }
 
       - name: Comment on issue
