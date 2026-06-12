@@ -51,6 +51,7 @@ jobs:
                - Implementation summary
                - Test coverage
                - Risks / follow-ups
+            `;
 
             await github.request("POST /repos/{owner}/{repo}/copilot/tasks", {
               owner,
