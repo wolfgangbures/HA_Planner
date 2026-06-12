@@ -15,6 +15,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Validate required configuration
+        uses: actions/github-script@v9
+        env:
+          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+          HA_BASE_URL: ${{ vars.HA_BASE_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const required = [
+              { name: "secrets.COPILOT_TOKEN", value: process.env.COPILOT_TOKEN },
+              { name: "vars.HA_BASE_URL", value: process.env.HA_BASE_URL },
+              { name: "secrets.HA_TOKEN", value: process.env.HA_TOKEN },
+            ];
+
+            const missing = required.filter(
+              (item) => !item.value || item.value.trim().length === 0
+            );
+
+            if (missing.length) {
+              core.setFailed(
+                `Missing required workflow configuration: ${missing
+                  .map((item) => item.name)
+                  .join(", ")}.`
+              );
+              return;
+            }
+
       - name: Run Copilot coding agent from issue
         uses: actions/github-script@v9
         with:
