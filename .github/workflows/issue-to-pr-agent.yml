@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  issues: read
+  issues: write
 
 jobs:
   create-pr-from-issue:
@@ -16,10 +16,22 @@ jobs:
 
     steps:
       - name: Run Copilot coding agent from issue
+        id: copilot-task
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.COPILOT_TOKEN }}
           script: |
+            // Pre-check: COPILOT_TOKEN must be set
+            const token = process.env.INPUT_GITHUB_TOKEN || "";
+            if (!token) {
+              core.setFailed(
+                "COPILOT_TOKEN secret is missing or empty. " +
+                "Add a fine-grained PAT with 'Copilot' read+write scope as the COPILOT_TOKEN repository secret. " +
+                "See: https://docs.github.com/en/copilot/how-tos/use-copilot-agents/using-copilot-coding-agent-in-your-repository"
+              );
+              return;
+            }
+
             const issue = context.payload.issue;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -59,6 +71,8 @@ jobs:
               "Accept": "application/vnd.github+json",
             };
 
+            // Try primary Copilot Agents endpoint
+            let taskCreated = false;
             try {
               await github.request("POST /agents/repos/{owner}/{repo}/tasks", {
                 owner,
@@ -68,24 +82,76 @@ jobs:
                 base_ref: "main",
                 create_pull_request: true,
               });
-            } catch (error) {
-              if (error.status !== 404) {
-                throw error;
+              core.info("Copilot coding task created via primary endpoint.");
+              taskCreated = true;
+            } catch (primaryError) {
+              if (primaryError.status === 404) {
+                core.warning(
+                  `Primary Copilot Agents endpoint returned 404 for ${owner}/${repo}. ` +
+                  "This endpoint may not be available for this repository or the token lacks 'Copilot' scope. " +
+                  "Retrying with legacy /repos/{owner}/{repo}/copilot/tasks endpoint."
+                );
+              } else if (primaryError.status === 401 || primaryError.status === 403) {
+                core.setFailed(
+                  `Authentication failed on primary endpoint (HTTP ${primaryError.status}). ` +
+                  "Verify that COPILOT_TOKEN is a valid PAT with 'Copilot' read+write scope."
+                );
+                return;
+              } else {
+                core.setFailed(
+                  `Primary endpoint failed with unexpected status ${primaryError.status}: ${primaryError.message}`
+                );
+                return;
               }
-
-              core.warning("Copilot Agents endpoint not found, retrying with legacy /repos/{owner}/{repo}/copilot/tasks endpoint.");
-              await github.request("POST /repos/{owner}/{repo}/copilot/tasks", {
-                owner,
-                repo,
-                headers,
-                problem_title: `Implement fix for #${issue.number}: ${issue.title}`,
-                problem_statement: prompt,
-                create_pull_request: true,
-              });
-              core.info("Copilot coding task created through legacy endpoint fallback.");
             }
 
-      - name: Comment on issue
+            // Fall back to legacy endpoint if primary was not available
+            if (!taskCreated) {
+              try {
+                await github.request("POST /repos/{owner}/{repo}/copilot/tasks", {
+                  owner,
+                  repo,
+                  headers,
+                  problem_title: `Implement fix for #${issue.number}: ${issue.title}`,
+                  problem_statement: prompt,
+                  create_pull_request: true,
+                });
+                core.info("Copilot coding task created via legacy endpoint fallback.");
+                taskCreated = true;
+              } catch (legacyError) {
+                if (legacyError.status === 404) {
+                  core.setFailed(
+                    `Both Copilot API endpoints returned 404 for ${owner}/${repo}. ` +
+                    "Possible causes:\n" +
+                    "  1. COPILOT_TOKEN does not have the 'Copilot' (read+write) permission scope.\n" +
+                    "  2. Copilot coding agent is not enabled for this repository — " +
+                    "enable it under Settings → Copilot → Coding agent.\n" +
+                    "  3. The GitHub Copilot plan on this account/organization does not include the coding agent feature.\n" +
+                    "Endpoints tried:\n" +
+                    "  - POST /agents/repos/{owner}/{repo}/tasks (404)\n" +
+                    "  - POST /repos/{owner}/{repo}/copilot/tasks (404)"
+                  );
+                } else if (legacyError.status === 401 || legacyError.status === 403) {
+                  core.setFailed(
+                    `Authentication failed on legacy endpoint (HTTP ${legacyError.status}). ` +
+                    "Verify that COPILOT_TOKEN is a valid PAT with 'Copilot' read+write scope."
+                  );
+                } else {
+                  core.setFailed(
+                    `Legacy endpoint failed with unexpected status ${legacyError.status}: ${legacyError.message}`
+                  );
+                }
+              }
+            }
+
+            if (!taskCreated) {
+              core.setOutput("task_created", "false");
+            } else {
+              core.setOutput("task_created", "true");
+            }
+
+      - name: Comment on issue (success)
+        if: ${{ steps.copilot-task.outputs.task_created == 'true' }}
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -96,4 +162,26 @@ jobs:
               repo: context.repo.repo,
               issue_number: issue.number,
               body: "🤖 I started an AI coding task to analyze this issue and prepare a suggested PR."
+            });
+
+      - name: Comment on issue (failure)
+        if: ${{ failure() }}
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body:
+                "⚠️ The automated AI coding task could not be started for this issue.\n\n" +
+                "Please check the [workflow run logs](" +
+                `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` +
+                ") for details.\n\n" +
+                "Common causes:\n" +
+                "- `COPILOT_TOKEN` secret is missing or lacks the **Copilot** (read+write) permission scope\n" +
+                "- Copilot coding agent is not enabled under **Settings → Copilot → Coding agent**\n" +
+                "- The account/organization Copilot plan does not include the coding agent feature"
             });
