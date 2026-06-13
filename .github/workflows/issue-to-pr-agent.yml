@@ -23,7 +23,7 @@ jobs:
           script: |
             // Pre-check: COPILOT_TOKEN must be set
             const token = process.env.INPUT_GITHUB_TOKEN || "";
-            if (!token || token === "undefined") {
+            if (!token) {
               core.setFailed(
                 "COPILOT_TOKEN secret is missing or empty. " +
                 "Add a fine-grained PAT with 'Copilot' read+write scope as the COPILOT_TOKEN repository secret. " +
@@ -151,7 +151,7 @@ jobs:
             }
 
       - name: Comment on issue (success)
-        if: ${{ success() && steps.copilot-task.outputs.task_created == 'true' }}
+        if: ${{ steps.copilot-task.outputs.task_created == 'true' }}
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
