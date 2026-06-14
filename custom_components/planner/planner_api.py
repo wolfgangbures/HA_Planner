@@ -724,3 +724,82 @@ class PlannerAPI:
         except Exception as err:
             _LOGGER.error("Error updating task %s: %s", task_id, err, exc_info=True)
             return {"success": False, "error": str(err)}
+
+    def add_task_comment(
+        self,
+        task_id: str,
+        comment: str,
+        append: bool = True,
+    ) -> dict[str, Any]:
+        """Add or set a comment/note on a task via the task details description field.
+
+        Args:
+            task_id: ID of the Planner task to update.
+            comment: The comment text to add or set.
+            append: When True (default) the new text is appended to any existing
+                    description, separated by a blank line.  When False the
+                    existing description is replaced entirely.
+        """
+        details_url = f"{GRAPH_API_ENDPOINT}/planner/tasks/{task_id}/details"
+
+        try:
+            get_response = requests.get(details_url, headers=self._get_headers(), timeout=30)
+
+            if get_response.status_code == 401:
+                self.access_token = None
+                self.authenticate()
+                get_response = requests.get(details_url, headers=self._get_headers(), timeout=30)
+
+            get_response.raise_for_status()
+            details_data = get_response.json()
+
+            etag = (
+                get_response.headers.get("ETag")
+                or details_data.get("@odata.etag")
+            )
+
+            if not etag:
+                return {"success": False, "error": "Task details ETag missing; cannot update"}
+
+            existing_description = details_data.get("description") or ""
+
+            if append and existing_description:
+                new_description = f"{existing_description}\n\n{comment}"
+            else:
+                new_description = comment
+
+            headers = self._get_headers()
+            headers["If-Match"] = etag
+
+            patch_response = requests.patch(
+                details_url,
+                headers=headers,
+                json={"description": new_description},
+                timeout=30,
+            )
+
+            if patch_response.status_code == 401:
+                self.access_token = None
+                self.authenticate()
+                headers = self._get_headers()
+                headers["If-Match"] = etag
+                patch_response = requests.patch(
+                    details_url,
+                    headers=headers,
+                    json={"description": new_description},
+                    timeout=30,
+                )
+
+            patch_response.raise_for_status()
+
+            _LOGGER.info("Updated description for task %s", task_id)
+            return {"success": True, "task_id": task_id}
+
+        except requests.exceptions.HTTPError as err:
+            _LOGGER.error("HTTP error updating task description %s: %s", task_id, err)
+            if err.response is not None:
+                _LOGGER.error("Response body: %s", err.response.text)
+            return {"success": False, "error": f"HTTP error: {err}"}
+        except Exception as err:
+            _LOGGER.error("Error updating task description %s: %s", task_id, err, exc_info=True)
+            return {"success": False, "error": str(err)}

@@ -132,3 +132,34 @@ list_buckets:
       example: "Aufgaben"
       selector:
         text:
+
+add_task_comment:
+  name: Add Task Comment
+  description: >-
+    Append or set the notes/description on a Microsoft Planner task.
+    By default the text is appended to any existing notes; set append to false to overwrite them.
+  fields:
+    task_id:
+      name: Task ID
+      description: The Microsoft Planner task ID to add the comment to
+      required: true
+      example: "AAMkADk3..."
+      selector:
+        text:
+    comment:
+      name: Comment
+      description: The comment text to add to the task notes
+      required: true
+      example: "Reviewed and approved."
+      selector:
+        text:
+          multiline: true
+    append:
+      name: Append
+      description: >-
+        When true (default) the comment is appended to any existing notes.
+        When false the existing notes are replaced with the new text.
+      required: false
+      default: true
+      selector:
+        boolean:

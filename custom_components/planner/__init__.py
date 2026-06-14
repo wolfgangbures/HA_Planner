@@ -202,6 +202,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.services.async_register(DOMAIN, "list_buckets", handle_list_buckets)
 
+    async def handle_add_task_comment(call):
+        """Handle the add_task_comment service call."""
+        task_id = call.data.get("task_id")
+        comment = call.data.get("comment")
+        append = call.data.get("append", True)
+
+        if not task_id:
+            _LOGGER.error("add_task_comment service requires task_id")
+            return {"success": False, "error": "task_id missing"}
+
+        if not comment:
+            _LOGGER.error("add_task_comment service requires comment")
+            return {"success": False, "error": "comment missing"}
+
+        _LOGGER.info("Service call to add comment to task: %s", task_id)
+
+        result = await hass.async_add_executor_job(
+            api.add_task_comment,
+            task_id,
+            comment,
+            append,
+        )
+
+        if result.get("success"):
+            await coordinator.async_request_refresh()
+        else:
+            _LOGGER.error(
+                "Failed to add comment to task %s: %s",
+                task_id,
+                result.get("error"),
+            )
+
+        return result
+
+    hass.services.async_register(DOMAIN, "add_task_comment", handle_add_task_comment)
+
     return True
 
 
