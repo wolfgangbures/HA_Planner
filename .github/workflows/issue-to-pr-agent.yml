@@ -15,100 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Run Copilot coding agent from issue
-        id: copilot-task
-        uses: actions/github-script@v9
-        with:
-          github-token: ${{ secrets.COPILOT_TOKEN }}
-          script: |
-            const issue = context.payload.issue;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-
-            const taskTitle = `Implement fix for #${issue.number}: ${issue.title}`;
-            const taskBody = [
-              "A new GitHub issue was opened and should be analyzed and implemented.",
-              "",
-              `Repository: ${owner}/${repo}`,
-              `Issue: #${issue.number}`,
-              `Title: ${issue.title}`,
-              `Author: ${issue.user.login}`,
-              `URL: ${issue.html_url}`,
-              "",
-              "Issue body:",
-              issue.body || "(no description provided)",
-              "",
-              "Instructions:",
-              "1. Analyze the issue and inspect relevant code paths.",
-              "2. Retrieve live Home Assistant logs from the HA1180 live instance with the ha-logs-retrieval.yml workflow",
-              "   - Use ha-logs-retrieval.yml from this repository.",
-              "   - download artifact ha-logs",
-              "   - Summarize key errors/warnings and probable root cause from those logs.",
-              "3. Propose and implement a minimal, safe fix based on code + live log evidence.",
-              "4. Add or update tests where appropriate.",
-              `5. Open a pull request referencing #${issue.number}.`,
-              "6. In the PR description, include:",
-              "   - Root cause (including log evidence from HA1180 ha-logs retrieval)",
-              "   - Implementation summary",
-              "   - Test coverage",
-              "   - Risks / follow-ups",
-            ].join("\n");
-
-            // Pre-check: COPILOT_TOKEN should be set for the REST API path
-            const token = process.env.INPUT_GITHUB_TOKEN || "";
-            if (!token) {
-              core.warning(
-                "COPILOT_TOKEN secret is missing or empty — skipping REST API and falling back to @copilot comment. " +
-                "Add a fine-grained PAT with 'Copilot' read+write scope as the COPILOT_TOKEN repository secret to " +
-                "use the REST API path. " +
-                "See: https://docs.github.com/en/copilot/how-tos/use-copilot-agents/using-copilot-coding-agent-in-your-repository"
-              );
-              core.setOutput("task_created", "false");
-              return;
-            }
-
-            const apiHeaders = {
-              "X-GitHub-Api-Version": "2022-11-28",
-              "Accept": "application/vnd.github+json",
-            };
-
-            // Attempt the Copilot tasks REST API endpoint
-            try {
-              await github.request("POST /repos/{owner}/{repo}/copilot/tasks", {
-                owner,
-                repo,
-                headers: apiHeaders,
-                title: taskTitle,
-                body: taskBody,
-              });
-              core.info("Copilot coding task created via REST API.");
-              core.setOutput("task_created", "true");
-            } catch (apiError) {
-              if (apiError.status === 404) {
-                core.warning(
-                  `Copilot tasks REST API returned 404 for ${owner}/${repo}. ` +
-                  "Falling back to @copilot comment trigger. Possible causes:\n" +
-                  "  1. COPILOT_TOKEN lacks the 'Copilot' (read+write) permission scope.\n" +
-                  "  2. Copilot coding agent is not enabled — enable under Settings \u2192 Copilot \u2192 Coding agent.\n" +
-                  "  3. The account/org Copilot plan does not include the coding agent feature."
-                );
-              } else if (apiError.status === 401 || apiError.status === 403) {
-                core.warning(
-                  `Authentication failed on Copilot tasks API (HTTP ${apiError.status}). ` +
-                  "Falling back to @copilot comment trigger. " +
-                  "Verify that COPILOT_TOKEN is a valid PAT with 'Copilot' read+write scope."
-                );
-              } else {
-                core.warning(
-                  `Copilot tasks API failed (HTTP ${apiError.status}): ${apiError.message}. ` +
-                  "Falling back to @copilot comment trigger."
-                );
-              }
-              core.setOutput("task_created", "false");
-            }
-
-      - name: Trigger Copilot via issue comment (fallback)
-        if: steps.copilot-task.outputs.task_created != 'true'
+      - name: Trigger Copilot via issue comment
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -132,8 +39,7 @@ jobs:
             });
             core.info("Triggered Copilot coding agent via @copilot mention comment.");
 
-      - name: Comment on issue (success)
-        if: steps.copilot-task.outputs.task_created == 'true'
+      - name: Comment on issue (acknowledgement)
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -143,5 +49,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: "🤖 I started an AI coding task to analyze this issue and prepare a suggested PR."
+              body: "🤖 I triggered Copilot to analyze this issue and prepare a suggested PR."
             });
