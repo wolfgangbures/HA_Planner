@@ -25,9 +25,9 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              assignees: ["copilot"]
+              assignees: ["Copilot"]
             });
-            core.info("Assigned issue to @copilot.");
+            core.info("Assigned issue to @Copilot.");
 
       - name: Add Copilot instructions comment
         uses: actions/github-script@v9
@@ -40,7 +40,7 @@ jobs:
               repo: context.repo.repo,
               issue_number: issue.number,
               body: [
-                "@copilot Please implement this issue.",
+                "@Copilot Please implement this issue.",
                 "",
                 "**Instructions:**",
                 "1. Analyze the issue and inspect relevant code paths.",
