@@ -230,7 +230,7 @@ class PlannerAPI:
                         plan.get("id")
                     )
             except requests.exceptions.HTTPError as err:
-                if err.response.status_code == 403:
+                if err.response is not None and err.response.status_code == 403:
                     _LOGGER.debug("No access to plans in group: %s", group.get("displayName"))
                 else:
                     _LOGGER.debug("Error getting plans for group %s: %s", group.get("displayName"), err)
@@ -258,11 +258,14 @@ class PlannerAPI:
             return None
             
         except requests.exceptions.HTTPError as err:
-            if err.response.status_code == 403:
+            if err.response is not None and err.response.status_code == 403:
                 _LOGGER.error(
                     "Permission denied. Make sure your app has Group.Read.All and Tasks.Read permissions"
                 )
-            _LOGGER.error("HTTP Error: %s - %s", err.response.status_code, err.response.text)
+            if err.response is not None:
+                _LOGGER.error("HTTP Error: %s - %s", err.response.status_code, err.response.text)
+            else:
+                _LOGGER.error("HTTP Error: %s", err)
             raise
         except Exception as err:
             _LOGGER.error("Error in get_plan_by_name: %s", err, exc_info=True)
