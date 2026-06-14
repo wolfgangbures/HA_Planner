@@ -15,7 +15,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Copilot via issue comment
+      - name: Assign issue to Copilot
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              assignees: ["copilot"]
+            });
+            core.info("Assigned issue to @copilot.");
+
+      - name: Add Copilot instructions comment
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -30,14 +44,13 @@ jobs:
                 "",
                 "**Instructions:**",
                 "1. Analyze the issue and inspect relevant code paths.",
-                "2. Retrieve live Home Assistant logs from the HA1180 live instance using the ha-logs-retrieval.yml workflow (download artifact ha-logs, summarize key errors/warnings and probable root cause).",
+                "2. Retrieve live Home Assistant logs from the HA1180 live instance using the ha-logs-retrieval.yml workflow (download artifact ha-logs, summarize key errors/warnings and probable root causes).",
                 "3. Propose and implement a minimal, safe fix based on code + live log evidence.",
                 "4. Add or update tests where appropriate.",
                 `5. Open a pull request referencing #${issue.number}.`,
                 "6. In the PR description, include: root cause (with log evidence from HA1180), implementation summary, test coverage, and risks/follow-ups.",
               ].join("\n"),
             });
-            core.info("Triggered Copilot coding agent via @copilot mention comment.");
 
       - name: Comment on issue (acknowledgement)
         uses: actions/github-script@v9
@@ -49,5 +62,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: "🤖 I triggered Copilot to analyze this issue and prepare a suggested PR."
+              body: "🤖 I assigned this issue to Copilot and requested a suggested PR."
             });
