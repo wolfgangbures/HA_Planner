@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0-beta] - 2026-06-14
+### Added
+- `planner.add_task_comment` service to append or overwrite the Notes field of an existing Planner task.
+  - `task_id` (required): ID of the task to update.
+  - `comment` (required): The text to write into the task's Notes.
+  - `append` (optional, default `true`): When `true` the comment is appended to existing notes; when `false` the existing notes are replaced.
+
 ## [0.4.0] - 2025-12-30
 ### Added
 - Bucket-aware task creation and updates, including optional `bucket` name resolution and direct `bucket_id` targeting.
