@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
   - `comment` (required): The text to write into the task's Notes.
   - `append` (optional, default `true`): When `true` the comment is appended to existing notes; when `false` the existing notes are replaced.
 
+### Fixed
+- Added Home Assistant custom integration brand assets under `custom_components/planner/brand/` so the integration icon renders correctly in Home Assistant and satisfies HACS brand checks.
+
 ## [0.4.0] - 2025-12-30
 ### Added
 - Bucket-aware task creation and updates, including optional `bucket` name resolution and direct `bucket_id` targeting.
