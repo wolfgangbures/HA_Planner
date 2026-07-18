@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.3] - 2026-07-18
+### Fixed
+- Added Home Assistant custom integration brand assets under `custom_components/planner/brand/` so the integration icon renders correctly in Home Assistant and satisfies HACS brand checks.
+- Bumped integration version to trigger proper update pickup for existing installs.
+
 ## [0.4.0] - 2025-12-30
 ### Added
 - Bucket-aware task creation and updates, including optional `bucket` name resolution and direct `bucket_id` targeting.
