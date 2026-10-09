@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1-beta] - 2026-10-09
+### Fixed
+- Updated MSAL from 1.34.0 to 1.39.0 to allow Home Assistant 2026.10's cryptography 50 dependency and support Python 3.14.
+- Fixed the dependency installation failure that prevented Planner setup on Home Assistant 2026.10.
+
 ## [1.3.0-beta] - 2026-06-14
 ### Added
 - `planner.add_task_comment` service to append or overwrite the Notes field of an existing Planner task.
