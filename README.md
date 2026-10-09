@@ -284,6 +284,20 @@ automation:
 
 ## Troubleshooting
 
+### Dependency Installation Failure on Home Assistant 2026.10
+
+If setup fails with `RequirementsNotFound` for `msal==1.34.0`, update this
+integration to version 1.3.1 or newer and restart Home Assistant.
+Reloading the integration alone is not sufficient to load the updated files.
+
+Home Assistant 2026.10.0 requires `cryptography==50.0.1`, but MSAL 1.34.0 requires
+`cryptography<49`. Integration version 1.3.1 pins MSAL 1.39.0, which allows
+cryptography 50 and supports Python 3.14. Do not downgrade Home Assistant's
+cryptography package to work around this conflict.
+
+If installation still fails after updating, check the full Home Assistant logs
+for dependency resolver errors and verify that Home Assistant can reach PyPI.
+
 ### Authentication Issues
 
 - Verify your Client ID, Client Secret, and Tenant ID are correct
